@@ -26,12 +26,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private View vista;
     private static final int SOLICITUD_PERMISO_ACCESS_FINE_LOCATION = 0;
+    private static final int SOLICITUD_PERMISO_ACCESS_FINE_LOCATION1 = 1;
     private GoogleMap mapa;
     LocationManager locationManager;
     private static final long TIEMPO_MIN = 10 * 1000 ; // 10 segundos
     private static final long DISTANCIA_MIN = 5; // 5 metros
 
-    private boolean semuestra_mapa = false;
+    private boolean permiso_concedido=false;
+
+    private boolean permiso_negado = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +44,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mapa);
         mapFragment.getMapAsync(this);
         vista = findViewById(R.id.content_main);
-         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     }
 
     @Override
@@ -62,7 +65,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
             Snackbar.make(vista, "Sin el permiso de localizacion"
-                    + " indicar la localizacion del dispositivo.", Snackbar.LENGTH_INDEFINITE)
+                    + " no puedo indicar la localizacion del dispositivo.", Snackbar.LENGTH_INDEFINITE)
                     .setAction("OK", new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
@@ -91,6 +94,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             } else {
                 Snackbar.make(vista, "Sin el permiso, no puedo realizar la" +
                         "acción", Snackbar.LENGTH_SHORT).show();
+                permiso_negado = true;
+            }
+        }
+        if (requestCode == SOLICITUD_PERMISO_ACCESS_FINE_LOCATION1) {
+            if (grantResults.length == 1 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                ponerRequestLocationUpdates();
+
+            } else {
+                Snackbar.make(vista, "Sin el permiso, no puedo realizar la" +
+                        "acción", Snackbar.LENGTH_SHORT).show();
+                permiso_negado = true;
             }
         }
     }
@@ -98,6 +114,39 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onResume() {
         super.onResume();
+        if (!(permiso_negado)) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                ponerRequestLocationUpdates();
+            } else {
+                solicitarPermisoRequestLocationUpdates();
+            }
+        }
+
+    }
+
+    public void solicitarPermisoRequestLocationUpdates() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
+            Snackbar.make(vista, "Sin el permiso de localizacion"
+                    + " no puedo indicar la localizacion del dispositivo.", Snackbar.LENGTH_INDEFINITE)
+                    .setAction("OK", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            ActivityCompat.requestPermissions(MainActivity.this,
+                                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                                    SOLICITUD_PERMISO_ACCESS_FINE_LOCATION1);
+                        }
+                    })
+                    .show();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    SOLICITUD_PERMISO_ACCESS_FINE_LOCATION1);
+        }
+    }
+
+    private void ponerRequestLocationUpdates(){
+        permiso_concedido = true;
         Criteria criterio = new Criteria();
         criterio.setCostAllowed(false);
         criterio.setAltitudeRequired(false);
@@ -109,14 +158,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onPause() {
         super.onPause();
-        locationManager.removeUpdates(this);
+        if (permiso_concedido) locationManager.removeUpdates(this);
     }
     public void onLocationChanged(Location location) {
         mostrarLocalizacionMapa(location);
     }
 
     private void ponerLocalizacionMapa() {
-        semuestra_mapa = true;
+        permiso_concedido = true;
         mapa.setMyLocationEnabled(true);
         mapa.getUiSettings().setZoomControlsEnabled(false);
         mapa.getUiSettings().setCompassEnabled(true);
