@@ -2,6 +2,7 @@ package com.a70n1.martina_u8;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
@@ -36,10 +37,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private boolean permiso_negado = false;
 
+    private String message = "";
+    private String number = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+        Intent intent = getIntent();
+        message = intent.getStringExtra("mensaje");
+        number = intent.getStringExtra("numero");
+
         // Obtenemos el mapa de forma asíncrona (notificará cuando esté listo)
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mapa);
         mapFragment.getMapAsync(this);
@@ -177,9 +187,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
     private void mostrarLocalizacionMapa(Location location){
-        if (location != null)
+        if (location != null) {
             mapa.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 15));
         mapa.addMarker(new MarkerOptions().position(mapa.getCameraPosition().target));
+
+            if ((message!="") && (message!=null)){
+                mapa.addMarker(new MarkerOptions()
+                        .position(new LatLng(location.getLatitude(), location.getLongitude()))
+                        .title("Mensaje enviado desde" + number + ": " + message)).showInfoWindow();
+            }
+        }
     }
 
     private void visualizarContenidoSMS(String contenido) {
@@ -188,14 +205,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mapa.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude())).title("SMS Recibido").snippet(contenido));
     }
     public void onProviderDisabled(String proveedor) {
-
+        ponerRequestLocationUpdates();
     }
     public void onProviderEnabled(String proveedor) {
-
+        ponerRequestLocationUpdates();
     }
     public void onStatusChanged(String proveedor, int estado, Bundle extras) {
-        /*log("Cambia estado proveedor: " + proveedor + ", estado="
-                + E[Math.max(0, estado)] + ", extras=" + extras + "\n");*/
+        ponerRequestLocationUpdates();
     }
 
 }
